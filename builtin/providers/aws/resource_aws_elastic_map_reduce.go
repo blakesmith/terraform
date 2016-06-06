@@ -39,27 +39,27 @@ func resourceAwsElasticMapReduceCreate(d *schema.ResourceData, meta interface{})
 	params := &emr.RunJobFlowInput{
 		Name:       aws.String("MyCluster"), // Required
 		AmiVersion: aws.String("3.8"),
-		Steps: []*emr.StepConfig{
-			{ // Required
-			// HadoopJarStep: &emr.HadoopJarStepConfig{ // Required
-			// 	Jar: aws.String("XmlString"), // Required
-			// 	Args: []*string{
-			// 		aws.String("XmlString"), // Required
-			// 		// More values...
-			// 	},
-			// 	MainClass: aws.String("XmlString"),
-			// 	Properties: []*emr.KeyValue{
-			// 		{ // Required
-			// 			Key:   aws.String("XmlString"),
-			// 			Value: aws.String("XmlString"),
-			// 		},
-			// 		// More values...
-			// 	},
-			// },
-			// Name:            aws.String("XmlStringMaxLen256"), // Required
-			// ActionOnFailure: aws.String("ActionOnFailure"),
-			},
-		},
+		// Steps: []*emr.StepConfig{
+		// 	{ // Required
+		// 	// HadoopJarStep: &emr.HadoopJarStepConfig{ // Required
+		// 	// 	Jar: aws.String("XmlString"), // Required
+		// 	// 	Args: []*string{
+		// 	// 		aws.String("XmlString"), // Required
+		// 	// 		// More values...
+		// 	// 	},
+		// 	// 	MainClass: aws.String("XmlString"),
+		// 	// 	Properties: []*emr.KeyValue{
+		// 	// 		{ // Required
+		// 	// 			Key:   aws.String("XmlString"),
+		// 	// 			Value: aws.String("XmlString"),
+		// 	// 		},
+		// 	// 		// More values...
+		// 	// 	},
+		// 	// },
+		// 	// Name:            aws.String("XmlStringMaxLen256"), // Required
+		// 	// ActionOnFailure: aws.String("ActionOnFailure"),
+		// 	},
+		// },
 		Instances: &emr.JobFlowInstancesConfig{ // Required
 			InstanceCount:               aws.Int64(1),
 			KeepJobFlowAliveWhenNoSteps: aws.Bool(true),
