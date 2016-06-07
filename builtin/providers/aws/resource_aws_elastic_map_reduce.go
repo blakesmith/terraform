@@ -46,6 +46,13 @@ func resourceAwsElasticMapReduceCluster() *schema.Resource {
 				Optional: true,
 				ForceNew: true,
 			},
+			"applications": &schema.Schema{
+				Type:     schema.TypeSet,
+				Optional: true,
+				ForceNew: true,
+				Elem:     &schema.Schema{Type: schema.TypeString},
+				Set:      schema.HashString,
+			},
 			"instances": &schema.Schema{
 				Type:     schema.TypeSet,
 				Required: true,
@@ -90,6 +97,11 @@ func resourceAwsElasticMapReduceCreate(d *schema.ResourceData, meta interface{})
 
 	if v, ok := d.GetOk("release"); ok {
 		req.ReleaseLabel = aws.String(v.(string))
+	}
+
+	applications := d.Get("applications").(*schema.Set).List()
+	if len(applications) > 0 {
+		req.Applications = expandApplications(applications)
 	}
 
 	resp, err := emrconn.RunJobFlow(req)
@@ -146,4 +158,15 @@ func resourceAwsElasticMapReduceDelete(d *schema.ResourceData, meta interface{})
 
 	d.SetId("")
 	return nil
+}
+
+func expandApplications(apps []interface{}) []*emr.Application {
+	appOut := make([]*emr.Application, 0, len(apps))
+	for _, appName := range expandStringList(apps) {
+		app := &emr.Application{
+			Name: appName,
+		}
+		appOut = append(appOut, app)
+	}
+	return appOut
 }
