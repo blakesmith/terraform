@@ -107,5 +107,19 @@ func resourceAwsElasticMapReduceUpdate(d *schema.ResourceData, meta interface{})
 }
 
 func resourceAwsElasticMapReduceDelete(d *schema.ResourceData, meta interface{}) error {
+	emrconn := meta.(*AWSClient).emrconn
+
+	req := &emr.TerminateJobFlowsInput{
+		JobFlowIds: []*string{
+			aws.String(d.Id()),
+		},
+	}
+
+	_, err := emrconn.TerminateJobFlows(req)
+	if err != nil {
+		return err
+	}
+
+	d.SetId("")
 	return nil
 }
