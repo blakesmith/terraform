@@ -30,6 +30,14 @@ func resourceAwsElasticMapReduceCluster() *schema.Resource {
 				Type:     schema.TypeString,
 				Required: true,
 			},
+			"service_role": &schema.Schema{
+				Type:     schema.TypeString,
+				Required: true,
+			},
+			"job_flow_role": &schema.Schema{
+				Type:     schema.TypeString,
+				Required: true,
+			},
 			"release": &schema.Schema{
 				Type:     schema.TypeString,
 				Optional: true,
@@ -56,21 +64,23 @@ func resourceAwsElasticMapReduceCreate(d *schema.ResourceData, meta interface{})
 	emrconn := meta.(*AWSClient).emrconn
 
 	clusterName := d.Get("cluster_name").(string)
+	serviceRole := d.Get("service_role").(string)
+	jobFlowRole := d.Get("job_flow_role").(string)
 
 	instances := d.Get("instances").(*schema.Set).List()[0].(map[string]interface{})
 	instanceCount := instances["instance_count"].(int)
 
 	req := &emr.RunJobFlowInput{
 		Name: aws.String(clusterName),
-		Instances: &emr.JobFlowInstancesConfig{ // Required
+		Instances: &emr.JobFlowInstancesConfig{
 			InstanceCount:               aws.Int64(int64(instanceCount)),
 			KeepJobFlowAliveWhenNoSteps: aws.Bool(true),
 			MasterInstanceType:          aws.String("m1.large"),
 			SlaveInstanceType:           aws.String("m1.large"),
 			TerminationProtected:        aws.Bool(false),
 		},
-		ServiceRole:       aws.String("EMR_DefaultRole"),
-		JobFlowRole:       aws.String("EMR_EC2_DefaultRole"),
+		ServiceRole:       aws.String(serviceRole),
+		JobFlowRole:       aws.String(jobFlowRole),
 		VisibleToAllUsers: aws.Bool(true),
 	}
 
@@ -81,16 +91,10 @@ func resourceAwsElasticMapReduceCreate(d *schema.ResourceData, meta interface{})
 	resp, err := emrconn.RunJobFlow(req)
 
 	if err != nil {
-		// Print the error, cast err to awserr.Error to get the Code and
-		// Message from an error.
-		fmt.Println(err.Error())
-		return err
+		return fmt.Errorf("Error creating EMR cluster: %s", err)
 	}
 
-	// Pretty-print the response data.
-	fmt.Println(resp)
 	d.SetId(*resp.JobFlowId)
-
 	return nil
 }
 

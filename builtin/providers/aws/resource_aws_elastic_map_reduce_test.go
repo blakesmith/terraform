@@ -19,7 +19,7 @@ func TestAccAWSEMrCluster_basic(t *testing.T) {
 		Steps: []resource.TestStep{
 			resource.TestStep{
 				Config: testAccAWSEmrClusterConfig,
-				Check:  testAccCheckAWSEmrClusterExists("aws_elastic_map_reduce_clust.tf-test-cluster", &jobFlow),
+				Check:  testAccCheckAWSEmrClusterExists("aws_elastic_map_reduce_cluster.tf-test-cluster", &jobFlow),
 			},
 		},
 	})
@@ -44,22 +44,36 @@ var testAccAWSEmrClusterConfig = fmt.Sprintf(`
 provider "aws" {
   region = "us-east-1"
 }
-resource "aws_security_group" "bar" {
-  name = "tf-test-security-group-%03d"
-  description = "tf-test-security-group-descr"
-  ingress {
-    from_port = -1
-    to_port = -1
-    protocol = "icmp"
-    cidr_blocks = ["0.0.0.0/0"]
-  }
+
+resource "aws_iam_role" "service_role" {
+  name = "tf-emr-service-role-%s"
+  assume_role_policy = "{\"Version\":\"2012-10-17\",\"Statement\":[{\"Effect\":\"Allow\",\"Principal\":{\"Service\":[\"ec2.amazonaws.com\"]},\"Action\":[\"sts:AssumeRole\"]}]}"
 }
 
+resource "aws_iam_role" "job_flow_role" {
+  name = "tf-emr-job-flow-role-%s"
+  assume_role_policy = "{\"Version\":\"2012-10-17\",\"Statement\":[{\"Effect\":\"Allow\",\"Principal\":{\"Service\":[\"ec2.amazonaws.com\"]},\"Action\":[\"sts:AssumeRole\"]}]}"
+}
+
+resource "aws_iam_policy_attachment" "service_attach" {
+  name = "tf-service-role-attach-%s"
+  roles = ["${aws_iam_role.service_role.name}"]
+  policy_arn = "arn:aws:iam::aws:policy/service-role/AmazonElasticMapReduceRole"
+}
+
+resource "aws_iam_policy_attachment" "job_flow_attach" {
+  name = "tf-job-flow-role-attach-%s"
+  roles = ["${aws_iam_role.job_flow_role.name}"]
+  policy_arn = "arn:aws:iam::aws:policy/service-role/AmazonElasticMapReduceforEC2Role"
+}
+  
 resource "aws_elastic_map_reduce_cluster" "tf-test-cluster" {
   cluster_name = "tf-emr-%s"
   release = "emr-4.7.0"
   instances {
     instance_count = 2
   }
+  service_role = "${aws_iam_role.service_role.name}"
+  job_flow_role = "${aws_iam_role.job_flow_role.name}"
 }
-`, acctest.RandInt(), acctest.RandString(10))
+`, acctest.RandString(10), acctest.RandString(10), acctest.RandString(10), acctest.RandString(10), acctest.RandString(10))
