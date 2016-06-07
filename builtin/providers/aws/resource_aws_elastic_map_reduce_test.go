@@ -42,20 +42,24 @@ func testAccCheckAWSEmrClusterExists(n string, v *emr.RunJobFlowOutput) resource
 
 var testAccAWSEmrClusterConfig = fmt.Sprintf(`
 provider "aws" {
-	region = "us-east-1"
+  region = "us-east-1"
 }
 resource "aws_security_group" "bar" {
-    name = "tf-test-security-group-%03d"
-    description = "tf-test-security-group-descr"
-    ingress {
-        from_port = -1
-        to_port = -1
-        protocol = "icmp"
-        cidr_blocks = ["0.0.0.0/0"]
-    }
+  name = "tf-test-security-group-%03d"
+  description = "tf-test-security-group-descr"
+  ingress {
+    from_port = -1
+    to_port = -1
+    protocol = "icmp"
+    cidr_blocks = ["0.0.0.0/0"]
+  }
 }
 
 resource "aws_elastic_map_reduce_cluster" "tf-test-cluster" {
-    cluster_name = "tf-emr-%s"
+  cluster_name = "tf-emr-%s"
+  release = "emr-4.7.0"
+  instances {
+    instance_count = 2
+  }
 }
 `, acctest.RandInt(), acctest.RandString(10))

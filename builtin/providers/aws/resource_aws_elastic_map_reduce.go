@@ -1,11 +1,22 @@
 package aws
 
 import (
+	"bytes"
 	"fmt"
+
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/emr"
+	"github.com/hashicorp/terraform/helper/hashcode"
 	"github.com/hashicorp/terraform/helper/schema"
 )
+
+func defaultInstanceHash(v interface{}) int {
+	var buf bytes.Buffer
+	m := v.(map[string]interface{})
+	buf.WriteString(fmt.Sprintf("%d-", m["instance_count"].(int)))
+
+	return hashcode.String(buf.String())
+}
 
 func resourceAwsElasticMapReduceCluster() *schema.Resource {
 	return &schema.Resource{
@@ -19,16 +30,24 @@ func resourceAwsElasticMapReduceCluster() *schema.Resource {
 				Type:     schema.TypeString,
 				Required: true,
 			},
-
-			// "software": &schema.Schema{
-			// 	Type: schema.TypeSet,
-			// 	Optional: true,
-			// Set: cacheBehavior
-			// },
-			// "release": &schema.Schema{
-			// 	Type: schema.TypeString,
-			// 	Optional: true,
-			// },
+			"release": &schema.Schema{
+				Type:     schema.TypeString,
+				Optional: true,
+			},
+			"instances": &schema.Schema{
+				Type:     schema.TypeSet,
+				Required: true,
+				Set:      defaultInstanceHash,
+				MaxItems: 1,
+				Elem: &schema.Resource{
+					Schema: map[string]*schema.Schema{
+						"instance_count": &schema.Schema{
+							Type:     schema.TypeInt,
+							Required: true,
+						},
+					},
+				},
+			},
 		},
 	}
 }
@@ -36,9 +55,13 @@ func resourceAwsElasticMapReduceCluster() *schema.Resource {
 func resourceAwsElasticMapReduceCreate(d *schema.ResourceData, meta interface{}) error {
 	emrconn := meta.(*AWSClient).emrconn
 
-	params := &emr.RunJobFlowInput{
-		Name:       aws.String("MyCluster"), // Required
-		AmiVersion: aws.String("3.8"),
+	clusterName := d.Get("cluster_name").(string)
+
+	instances := d.Get("instances").(*schema.Set).List()[0].(map[string]interface{})
+	instanceCount := instances["instance_count"].(int)
+
+	req := &emr.RunJobFlowInput{
+		Name: aws.String(clusterName),
 		// Steps: []*emr.StepConfig{
 		// 	{ // Required
 		// 	// HadoopJarStep: &emr.HadoopJarStepConfig{ // Required
@@ -61,7 +84,7 @@ func resourceAwsElasticMapReduceCreate(d *schema.ResourceData, meta interface{})
 		// 	},
 		// },
 		Instances: &emr.JobFlowInstancesConfig{ // Required
-			InstanceCount:               aws.Int64(1),
+			InstanceCount:               aws.Int64(int64(instanceCount)),
 			KeepJobFlowAliveWhenNoSteps: aws.Bool(true),
 			MasterInstanceType:          aws.String("m1.large"),
 			SlaveInstanceType:           aws.String("m1.large"),
@@ -71,7 +94,12 @@ func resourceAwsElasticMapReduceCreate(d *schema.ResourceData, meta interface{})
 		JobFlowRole:       aws.String("EMR_EC2_DefaultRole"),
 		VisibleToAllUsers: aws.Bool(true),
 	}
-	resp, err := emrconn.RunJobFlow(params)
+
+	if v, ok := d.GetOk("release"); ok {
+		req.ReleaseLabel = aws.String(v.(string))
+	}
+
+	resp, err := emrconn.RunJobFlow(req)
 
 	if err != nil {
 		// Print the error, cast err to awserr.Error to get the Code and
@@ -82,6 +110,7 @@ func resourceAwsElasticMapReduceCreate(d *schema.ResourceData, meta interface{})
 
 	// Pretty-print the response data.
 	fmt.Println(resp)
+	d.SetId(*resp.JobFlowId)
 
 	return nil
 }
