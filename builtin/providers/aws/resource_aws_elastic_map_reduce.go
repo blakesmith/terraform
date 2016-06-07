@@ -29,18 +29,22 @@ func resourceAwsElasticMapReduceCluster() *schema.Resource {
 			"cluster_name": &schema.Schema{
 				Type:     schema.TypeString,
 				Required: true,
+				ForceNew: true,
 			},
 			"service_role": &schema.Schema{
 				Type:     schema.TypeString,
 				Required: true,
+				ForceNew: true,
 			},
 			"job_flow_role": &schema.Schema{
 				Type:     schema.TypeString,
 				Required: true,
+				ForceNew: true,
 			},
 			"release": &schema.Schema{
 				Type:     schema.TypeString,
 				Optional: true,
+				ForceNew: true,
 			},
 			"instances": &schema.Schema{
 				Type:     schema.TypeSet,
@@ -99,6 +103,26 @@ func resourceAwsElasticMapReduceCreate(d *schema.ResourceData, meta interface{})
 }
 
 func resourceAwsElasticMapReduceRead(d *schema.ResourceData, meta interface{}) error {
+	emrconn := meta.(*AWSClient).emrconn
+
+	req := &emr.DescribeClusterInput{
+		ClusterId: aws.String(d.Id()),
+	}
+
+	resp, err := emrconn.DescribeCluster(req)
+	if err != nil {
+		return fmt.Errorf("Error reading EMR cluster: %s", err)
+	}
+	fmt.Println(resp)
+
+	cluster := resp.Cluster
+
+	d.Set("cluster_name", cluster.Name)
+	d.Set("release", cluster.ReleaseLabel)
+	d.Set("service_role", cluster.ServiceRole)
+
+	// TODO: Needs to be denormalized to Ec2InstanceAttributes
+	d.Set("job_flow_role", cluster.Ec2InstanceAttributes.IamInstanceProfile)
 	return nil
 }
 
