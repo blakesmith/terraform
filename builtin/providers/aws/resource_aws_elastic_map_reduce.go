@@ -62,27 +62,6 @@ func resourceAwsElasticMapReduceCreate(d *schema.ResourceData, meta interface{})
 
 	req := &emr.RunJobFlowInput{
 		Name: aws.String(clusterName),
-		// Steps: []*emr.StepConfig{
-		// 	{ // Required
-		// 	// HadoopJarStep: &emr.HadoopJarStepConfig{ // Required
-		// 	// 	Jar: aws.String("XmlString"), // Required
-		// 	// 	Args: []*string{
-		// 	// 		aws.String("XmlString"), // Required
-		// 	// 		// More values...
-		// 	// 	},
-		// 	// 	MainClass: aws.String("XmlString"),
-		// 	// 	Properties: []*emr.KeyValue{
-		// 	// 		{ // Required
-		// 	// 			Key:   aws.String("XmlString"),
-		// 	// 			Value: aws.String("XmlString"),
-		// 	// 		},
-		// 	// 		// More values...
-		// 	// 	},
-		// 	// },
-		// 	// Name:            aws.String("XmlStringMaxLen256"), // Required
-		// 	// ActionOnFailure: aws.String("ActionOnFailure"),
-		// 	},
-		// },
 		Instances: &emr.JobFlowInstancesConfig{ // Required
 			InstanceCount:               aws.Int64(int64(instanceCount)),
 			KeepJobFlowAliveWhenNoSteps: aws.Bool(true),
