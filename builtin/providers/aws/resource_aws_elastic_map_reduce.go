@@ -31,12 +31,12 @@ func resourceAwsElasticMapReduceCluster() *schema.Resource {
 				Required: true,
 				ForceNew: true,
 			},
-			"service_role": &schema.Schema{
+			"emr_role": &schema.Schema{
 				Type:     schema.TypeString,
 				Required: true,
 				ForceNew: true,
 			},
-			"job_flow_role": &schema.Schema{
+			"ec2_instance_profile": &schema.Schema{
 				Type:     schema.TypeString,
 				Required: true,
 				ForceNew: true,
@@ -75,8 +75,8 @@ func resourceAwsElasticMapReduceCreate(d *schema.ResourceData, meta interface{})
 	emrconn := meta.(*AWSClient).emrconn
 
 	clusterName := d.Get("cluster_name").(string)
-	serviceRole := d.Get("service_role").(string)
-	jobFlowRole := d.Get("job_flow_role").(string)
+	emrRole := d.Get("emr_role").(string)
+	ec2InstanceProfile := d.Get("ec2_instance_profile").(string)
 
 	instances := d.Get("instances").(*schema.Set).List()[0].(map[string]interface{})
 	instanceCount := instances["instance_count"].(int)
@@ -90,8 +90,8 @@ func resourceAwsElasticMapReduceCreate(d *schema.ResourceData, meta interface{})
 			SlaveInstanceType:           aws.String("m1.large"),
 			TerminationProtected:        aws.Bool(false),
 		},
-		ServiceRole:       aws.String(serviceRole),
-		JobFlowRole:       aws.String(jobFlowRole),
+		ServiceRole:       aws.String(emrRole),
+		JobFlowRole:       aws.String(ec2InstanceProfile),
 		VisibleToAllUsers: aws.Bool(true),
 	}
 
@@ -131,10 +131,7 @@ func resourceAwsElasticMapReduceRead(d *schema.ResourceData, meta interface{}) e
 
 	d.Set("cluster_name", cluster.Name)
 	d.Set("release", cluster.ReleaseLabel)
-	d.Set("service_role", cluster.ServiceRole)
 
-	// TODO: Needs to be denormalized to Ec2InstanceAttributes
-	d.Set("job_flow_role", cluster.Ec2InstanceAttributes.IamInstanceProfile)
 	return nil
 }
 
