@@ -53,6 +53,10 @@ func resourceAwsElasticMapReduceCluster() *schema.Resource {
 				Elem:     &schema.Schema{Type: schema.TypeString},
 				Set:      schema.HashString,
 			},
+			"auto_terminate": &schema.Schema{
+				Type:     schema.TypeBool,
+				Optional: true,
+			},
 			"instances": &schema.Schema{
 				Type:     schema.TypeSet,
 				Required: true,
@@ -64,11 +68,7 @@ func resourceAwsElasticMapReduceCluster() *schema.Resource {
 							Type:     schema.TypeInt,
 							Required: true,
 						},
-						"termination_protection": &schema.Schema{
-							Type:     schema.TypeBool,
-							Optional: true,
-						},
-						"auto_terminate": &schema.Schema{
+						"termination_protected": &schema.Schema{
 							Type:     schema.TypeBool,
 							Optional: true,
 						},
@@ -107,11 +107,15 @@ func resourceAwsElasticMapReduceCreate(d *schema.ResourceData, meta interface{})
 		req.ReleaseLabel = aws.String(v.(string))
 	}
 
+	// Really confusing: A DescribeCluster call puts this in the "AutoTerminate"
+	// field at the Cluster level. But it appears that this setting is initially
+	// configured on the JobFlowInstancesConfig. The boolean logic is also inverted
+	// to match this expectation.
 	if v, ok := d.GetOk("auto_terminate"); ok {
 		req.Instances.KeepJobFlowAliveWhenNoSteps = aws.Bool(!v.(bool))
 	}
 
-	if v, ok := d.GetOk("termination_protection"); ok {
+	if v, ok := instances["termination_protected"]; ok {
 		req.Instances.TerminationProtected = aws.Bool(v.(bool))
 	}
 
