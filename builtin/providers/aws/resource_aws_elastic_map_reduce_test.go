@@ -2,7 +2,7 @@ package aws
 
 import (
 	"fmt"
-	//	"github.com/aws/aws-sdk-go/aws"
+	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/emr"
 	"github.com/hashicorp/terraform/helper/acctest"
 	"github.com/hashicorp/terraform/helper/resource"
@@ -35,7 +35,16 @@ func testAccCheckAWSEmrClusterExists(n string, v *emr.RunJobFlowOutput) resource
 		if !ok {
 			return fmt.Errorf("Not found: %s", n)
 		}
-		fmt.Printf("Cluster primary id is: %s", rs.Primary.ID)
+		if rs.Primary.ID == "" {
+			return fmt.Errorf("No cluster id set")
+		}
+		conn := testAccProvider.Meta().(*AWSClient).emrconn
+		_, err := conn.DescribeCluster(&emr.DescribeClusterInput{
+			ClusterId: aws.String(rs.Primary.ID),
+		})
+		if err != nil {
+			return fmt.Errorf("EMR error: %v", err)
+		}
 		return nil
 	}
 }
@@ -45,35 +54,14 @@ provider "aws" {
   region = "us-east-1"
 }
 
-resource "aws_iam_role" "service_role" {
-  name = "tf-emr-service-role-%s"
-  assume_role_policy = "{\"Version\":\"2012-10-17\",\"Statement\":[{\"Effect\":\"Allow\",\"Principal\":{\"Service\":[\"ec2.amazonaws.com\"]},\"Action\":[\"sts:AssumeRole\"]}]}"
-}
-
-resource "aws_iam_role" "job_flow_role" {
-  name = "tf-emr-job-flow-role-%s"
-  assume_role_policy = "{\"Version\":\"2012-10-17\",\"Statement\":[{\"Effect\":\"Allow\",\"Principal\":{\"Service\":[\"ec2.amazonaws.com\"]},\"Action\":[\"sts:AssumeRole\"]}]}"
-}
-
-resource "aws_iam_policy_attachment" "service_attach" {
-  name = "tf-service-role-attach-%s"
-  roles = ["${aws_iam_role.service_role.name}"]
-  policy_arn = "arn:aws:iam::aws:policy/service-role/AmazonElasticMapReduceRole"
-}
-
-resource "aws_iam_policy_attachment" "job_flow_attach" {
-  name = "tf-job-flow-role-attach-%s"
-  roles = ["${aws_iam_role.job_flow_role.name}"]
-  policy_arn = "arn:aws:iam::aws:policy/service-role/AmazonElasticMapReduceforEC2Role"
-}
-  
 resource "aws_elastic_map_reduce_cluster" "tf-test-cluster" {
   cluster_name = "tf-emr-%s"
   release = "emr-4.7.0"
+  applications = ["hive", "hadoop", "pig", "spark", "hue"]
   instances {
     instance_count = 2
   }
-  service_role = "${aws_iam_role.service_role.name}"
-  job_flow_role = "${aws_iam_role.job_flow_role.name}"
+  emr_role = "EMR_DefaultRole"
+  ec2_instance_profile = "EMR_EC2_DefaultRole"
 }
-`, acctest.RandString(10), acctest.RandString(10), acctest.RandString(10), acctest.RandString(10), acctest.RandString(10))
+`, acctest.RandString(10))
