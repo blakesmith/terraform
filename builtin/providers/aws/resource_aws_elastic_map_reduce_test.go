@@ -60,6 +60,8 @@ resource "aws_elastic_map_reduce_cluster" "tf-test-cluster" {
   applications = ["hive", "hadoop", "pig", "spark", "hue"]
   instances {
     instance_count = 2
+    auto_terminate = true
+    termination_protection = true
   }
   emr_role = "EMR_DefaultRole"
   ec2_instance_profile = "EMR_EC2_DefaultRole"

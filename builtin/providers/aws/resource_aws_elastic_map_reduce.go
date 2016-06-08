@@ -64,6 +64,14 @@ func resourceAwsElasticMapReduceCluster() *schema.Resource {
 							Type:     schema.TypeInt,
 							Required: true,
 						},
+						"termination_protection": &schema.Schema{
+							Type:     schema.TypeBool,
+							Optional: true,
+						},
+						"auto_terminate": &schema.Schema{
+							Type:     schema.TypeBool,
+							Optional: true,
+						},
 					},
 				},
 			},
@@ -97,6 +105,14 @@ func resourceAwsElasticMapReduceCreate(d *schema.ResourceData, meta interface{})
 
 	if v, ok := d.GetOk("release"); ok {
 		req.ReleaseLabel = aws.String(v.(string))
+	}
+
+	if v, ok := d.GetOk("auto_terminate"); ok {
+		req.Instances.KeepJobFlowAliveWhenNoSteps = aws.Bool(!v.(bool))
+	}
+
+	if v, ok := d.GetOk("termination_protection"); ok {
+		req.Instances.TerminationProtected = aws.Bool(v.(bool))
 	}
 
 	applications := d.Get("applications").(*schema.Set).List()
