@@ -53,6 +53,10 @@ func resourceAwsElasticMapReduceCluster() *schema.Resource {
 				Elem:     &schema.Schema{Type: schema.TypeString},
 				Set:      schema.HashString,
 			},
+			"log_uri": &schema.Schema{
+				Type:     schema.TypeString,
+				Optional: true,
+			},
 			"auto_terminate": &schema.Schema{
 				Type:     schema.TypeBool,
 				Optional: true,
@@ -67,6 +71,11 @@ func resourceAwsElasticMapReduceCluster() *schema.Resource {
 						"instance_count": &schema.Schema{
 							Type:     schema.TypeInt,
 							Required: true,
+						},
+						"subnet_id": &schema.Schema{
+							Type:     schema.TypeString,
+							Required: true,
+							ForceNew: true,
 						},
 						"termination_protected": &schema.Schema{
 							Type:     schema.TypeBool,
@@ -88,11 +97,13 @@ func resourceAwsElasticMapReduceCreate(d *schema.ResourceData, meta interface{})
 
 	instances := d.Get("instances").(*schema.Set).List()[0].(map[string]interface{})
 	instanceCount := instances["instance_count"].(int)
+	subnetId := instances["subnet_id"].(string)
 
 	req := &emr.RunJobFlowInput{
 		Name: aws.String(clusterName),
 		Instances: &emr.JobFlowInstancesConfig{
 			InstanceCount:               aws.Int64(int64(instanceCount)),
+			Ec2SubnetId:                 aws.String(subnetId),
 			KeepJobFlowAliveWhenNoSteps: aws.Bool(true),
 			MasterInstanceType:          aws.String("m1.large"),
 			SlaveInstanceType:           aws.String("m1.large"),
@@ -105,6 +116,10 @@ func resourceAwsElasticMapReduceCreate(d *schema.ResourceData, meta interface{})
 
 	if v, ok := d.GetOk("release"); ok {
 		req.ReleaseLabel = aws.String(v.(string))
+	}
+
+	if v, ok := d.GetOk("log_uri"); ok {
+		req.LogUri = aws.String(v.(string))
 	}
 
 	// Really confusing: A DescribeCluster call puts this in the "AutoTerminate"
